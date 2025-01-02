@@ -3,14 +3,20 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Illuminate\Support\Facades\Log;
 
 class CandySort extends Component
 {
     public $tubes;
+
     public $colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+
     public $selectedColor = null;
+
     public $selectedTube = null;
+
     public $tubeCapacity = 4;
+
     public $solutionSteps = [];
 
     public function mount()
@@ -32,12 +38,12 @@ class CandySort extends Component
     {
         if ($this->selectedColor && count($this->tubes[$tubeIndex]) < $this->tubeCapacity) {
             $this->tubes[$tubeIndex][] = $this->selectedColor;
-        } else if (!$this->selectedColor) {
+        } elseif (! $this->selectedColor) {
             if ($this->selectedTube === $tubeIndex) {
                 $this->selectedTube = null;
-            } else if ($this->selectedTube === null && count($this->tubes[$tubeIndex]) > 0) {
+            } elseif ($this->selectedTube === null && count($this->tubes[$tubeIndex]) > 0) {
                 $this->selectedTube = $tubeIndex;
-            } else if ($this->selectedTube !== null && $this->isValidMove($this->selectedTube, $tubeIndex)) {
+            } elseif ($this->selectedTube !== null && $this->isValidMove($this->selectedTube, $tubeIndex)) {
                 $candy = array_pop($this->tubes[$this->selectedTube]);
                 $this->tubes[$tubeIndex][] = $candy;
                 $this->selectedTube = null;
@@ -47,9 +53,16 @@ class CandySort extends Component
 
     public function isValidMove($fromTube, $toTube)
     {
-        if (count($this->tubes[$toTube]) >= $this->tubeCapacity) return false;
-        if (count($this->tubes[$fromTube]) === 0) return false;
-        if (count($this->tubes[$toTube]) === 0) return true;
+        if (count($this->tubes[$toTube]) >= $this->tubeCapacity) {
+            return false;
+        }
+        if (count($this->tubes[$fromTube]) === 0) {
+            return false;
+        }
+        if (count($this->tubes[$toTube]) === 0) {
+            return true;
+        }
+
         return end($this->tubes[$toTube]) === end($this->tubes[$fromTube]);
     }
 
@@ -97,8 +110,12 @@ class CandySort extends Component
 class CandySortSolver
 {
     private $tubes;
+
     private $tubeCapacity;
+
     private $moves = [];
+
+    private $visitedStates = [];
 
     public function __construct(array $initialTubes, int $tubeCapacity = 4)
     {
@@ -108,9 +125,20 @@ class CandySortSolver
 
     public function solve(): ?array
     {
+        Log::info('Starting solve routine', ['tubes' => $this->tubes]);
+
         if ($this->isSolved()) {
+            Log::info('Puzzle already solved');
             return $this->moves;
         }
+
+        $stateKey = $this->getStateKey();
+        if (isset($this->visitedStates[$stateKey])) {
+            Log::info('Already visited state', ['state' => $stateKey]);
+            return null;
+        }
+
+        $this->visitedStates[$stateKey] = true;
 
         for ($fromTube = 0; $fromTube < count($this->tubes); $fromTube++) {
             if (empty($this->tubes[$fromTube])) {
@@ -123,14 +151,18 @@ class CandySortSolver
                 }
 
                 if ($this->isValidMove($fromTube, $toTube)) {
+                    Log::info('Valid move found', ['from' => $fromTube, 'to' => $toTube]);
+
                     $candy = array_pop($this->tubes[$fromTube]);
                     $this->tubes[$toTube][] = $candy;
-                    $this->moves[] = ["from" => $fromTube, "to" => $toTube];
+                    $this->moves[] = ['from' => $fromTube, 'to' => $toTube];
 
                     $solution = $this->solve();
                     if ($solution !== null) {
                         return $solution;
                     }
+
+                    Log::info('Backtracking', ['from' => $toTube, 'to' => $fromTube]);
 
                     $candy = array_pop($this->tubes[$toTube]);
                     $this->tubes[$fromTube][] = $candy;
@@ -139,7 +171,13 @@ class CandySortSolver
             }
         }
 
+        Log::info('No solution found at this branch');
         return null;
+    }
+
+    private function getStateKey(): string
+    {
+        return json_encode($this->tubes);
     }
 
     private function isValidMove(int $fromTube, int $toTube): bool
@@ -158,6 +196,7 @@ class CandySortSolver
             if ($this->isCompleteTube($fromTube)) {
                 return false;
             }
+
             return true;
         }
 
@@ -170,10 +209,11 @@ class CandySortSolver
             if (empty($tube)) {
                 continue;
             }
-            if (!$this->isCompleteTube(array_search($tube, $this->tubes))) {
+            if (! $this->isCompleteTube(array_search($tube, $this->tubes))) {
                 return false;
             }
         }
+
         return true;
     }
 
@@ -189,7 +229,7 @@ class CandySortSolver
                 return false;
             }
         }
+
         return true;
     }
 }
-?>
