@@ -19,6 +19,8 @@ class CandySort extends Component
 
     public $solutionSteps = [];
 
+    public $solveMessages = [];
+
     private $moves = [];
 
     private $visitedStates = [];
@@ -101,6 +103,7 @@ class CandySort extends Component
         }, $this->tubes);
 
         $this->tubes = $numericTubes;
+        $this->solveMessages = [];
         $solution = $this->solve();
 
         if ($solution) {
@@ -113,9 +116,11 @@ class CandySort extends Component
     private function solve(): ?array
     {
         Log::info('Starting solve routine', ['tubes' => $this->tubes]);
+        $this->solveMessages[] = 'Starting solve routine';
 
         if ($this->isSolved()) {
             Log::info('Puzzle already solved');
+            $this->solveMessages[] = 'Puzzle already solved';
             return $this->moves;
         }
 
@@ -139,10 +144,14 @@ class CandySort extends Component
 
                 if ($this->isValidMove($fromTube, $toTube)) {
                     Log::info('Valid move found', ['from' => $fromTube, 'to' => $toTube]);
+                    $this->solveMessages[] = "Valid move found from tube $fromTube to tube $toTube";
 
                     $candy = array_pop($this->tubes[$fromTube]);
                     $this->tubes[$toTube][] = $candy;
                     $this->moves[] = ['from' => $fromTube, 'to' => $toTube];
+
+                    // TODO: refresh tubes
+                    // $this->emitSelf('refreshTubes'); // Emit event to refresh tubes
 
                     $solution = $this->solve();
                     if ($solution !== null) {
@@ -150,15 +159,19 @@ class CandySort extends Component
                     }
 
                     Log::info('Backtracking', ['from' => $toTube, 'to' => $fromTube]);
+                    $this->solveMessages[] = "Backtracking from tube $toTube to tube $fromTube";
 
                     $candy = array_pop($this->tubes[$toTube]);
                     $this->tubes[$fromTube][] = $candy;
                     array_pop($this->moves);
+
+                    //$this->emitSelf('refreshTubes'); // Emit event to refresh tubes
                 }
             }
         }
 
         Log::info('No solution found at this branch');
+        $this->solveMessages[] = 'No solution found at this branch';
         return null;
     }
 

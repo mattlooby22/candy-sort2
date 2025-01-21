@@ -39,4 +39,10 @@
             @endif
         </div>
     </div>
+    <div class="solve-window">
+        @foreach ($solveMessages as $message)
+            <div class="solve-message">{{ $message }}</div>
+        @endforeach
+    </div>
+    
 </div>
