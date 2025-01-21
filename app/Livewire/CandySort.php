@@ -19,6 +19,10 @@ class CandySort extends Component
 
     public $solutionSteps = [];
 
+    private $moves = [];
+
+    private $visitedStates = [];
+
     public function mount()
     {
         $this->resetPuzzle();
@@ -96,8 +100,8 @@ class CandySort extends Component
             }, $tube);
         }, $this->tubes);
 
-        $solver = new CandySortSolver($numericTubes, $this->tubeCapacity);
-        $solution = $solver->solve();
+        $this->tubes = $numericTubes;
+        $solution = $this->solve();
 
         if ($solution) {
             $this->solutionSteps = $solution;
@@ -105,25 +109,8 @@ class CandySort extends Component
             session()->flash('error', 'No solution found!');
         }
     }
-}
 
-class CandySortSolver
-{
-    private $tubes;
-
-    private $tubeCapacity;
-
-    private $moves = [];
-
-    private $visitedStates = [];
-
-    public function __construct(array $initialTubes, int $tubeCapacity = 4)
-    {
-        $this->tubes = $initialTubes;
-        $this->tubeCapacity = $tubeCapacity;
-    }
-
-    public function solve(): ?array
+    private function solve(): ?array
     {
         Log::info('Starting solve routine', ['tubes' => $this->tubes]);
 
@@ -178,29 +165,6 @@ class CandySortSolver
     private function getStateKey(): string
     {
         return json_encode($this->tubes);
-    }
-
-    private function isValidMove(int $fromTube, int $toTube): bool
-    {
-        if (empty($this->tubes[$fromTube])) {
-            return false;
-        }
-
-        if (count($this->tubes[$toTube]) >= $this->tubeCapacity) {
-            return false;
-        }
-
-        $candy = end($this->tubes[$fromTube]);
-
-        if (empty($this->tubes[$toTube])) {
-            if ($this->isCompleteTube($fromTube)) {
-                return false;
-            }
-
-            return true;
-        }
-
-        return end($this->tubes[$toTube]) === $candy;
     }
 
     private function isSolved(): bool
